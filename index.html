@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CardClash - Multiplayer</title>
+    <style>
+        :root {
+            --bg-color: #1a1a2e;
+            --primary: #e94560;
+            --glass: rgba(255, 255, 255, 0.1);
+            --text: #ffffff;
+        }
+
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background-color: var(--bg-color);
+            background-image: radial-gradient(circle at 50% 50%, #16213e 0%, #1a1a2e 100%);
+            color: var(--text);
+            margin: 0;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+
+        /* --- LOGIN SCREEN --- */
+        #login-screen {
+            background: var(--glass);
+            backdrop-filter: blur(10px);
+            padding: 2rem;
+            border-radius: 15px;
+            text-align: center;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+        }
+
+        input {
+            display: block;
+            width: 100%;
+            margin: 10px 0;
+            padding: 10px;
+            border: none;
+            border-radius: 5px;
+            background: rgba(255,255,255,0.9);
+        }
+
+        button {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: transform 0.2s;
+            margin-top: 10px;
+            width: 100%; /* Make buttons full width for better mobile view */
+        }
+        button:hover { transform: scale(1.05); }
+
+        .leaderboard-btn {
+            background: #FFD700; /* Gold Color */
+            color: #333;
+        }
+        
+        /* Specific style for Home Button */
+        .home-btn {
+            background: transparent;
+            border: 2px solid var(--primary);
+            color: white;
+        }
+        .home-btn:hover {
+            background: rgba(233, 69, 96, 0.2);
+        }
+
+        /* --- GAME BOARD --- */
+        #game-screen {
+            display: none;
+            width: 100%;
+            height: 100%;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .top-info {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            max-width: 800px;
+        }
+
+        .player-badge {
+            background: var(--glass);
+            padding: 10px 20px;
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .active-turn { border: 2px solid #4caf50; box-shadow: 0 0 15px #4caf50; }
+
+        /* --- CARD STYLES --- */
+        .card-area {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            justify-content: center;
+            flex-grow: 1;
+        }
+
+        .card {
+            width: 100px;
+            height: 150px;
+            border-radius: 10px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 2rem;
+            font-weight: bold;
+            position: relative;
+            background: white;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            user-select: none;
+            transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .card[data-color="red"] { background: linear-gradient(135deg, #ff4b1f, #ff9068); }
+        .card[data-color="blue"] { background: linear-gradient(135deg, #2193b0, #6dd5ed); }
+        .card[data-color="green"] { background: linear-gradient(135deg, #56ab2f, #a8e063); }
+        .card[data-color="yellow"] { background: linear-gradient(135deg, #f7971e, #ffd200); color: black; }
+
+        .my-hand {
+            display: flex;
+            gap: -10px; /* Overlap effect */
+            padding-bottom: 20px;
+        }
+
+        .my-hand .card {
+            cursor: pointer;
+        }
+        .my-hand .card:hover {
+            transform: translateY(-20px) scale(1.1);
+            z-index: 10;
+        }
+
+        .pile-label {
+            position: absolute;
+            top: -25px;
+            font-size: 0.8rem;
+            opacity: 0.7;
+        }
+        
+        #draw-btn {
+            background: #333;
+            color: white;
+            border: 2px dashed #666;
+        }
+
+        /* --- MODALS --- */
+        .modal {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            z-index: 100;
+        }
+        #winner-modal h1 { font-size: 4rem; color: #ffd700; text-shadow: 0 0 20px #ffd700; }
+        
+        /* Leaderboard Specifics */
+        #leaderboard-list {
+            background: var(--bg-color);
+            padding: 20px;
+            border-radius: 10px;
+            width: 300px;
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid #444;
+        }
+        .leaderboard-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px;
+            border-bottom: 1px solid #333;
+            color: white;
+        }
+        
+        #error-banner {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            background: #ff4444;
+            color: white;
+            text-align: center;
+            padding: 10px;
+            display: none;
+            z-index: 200;
+        }
+    </style>
+</head>
+<body>
+    <div id="error-banner"></div>
+
+    <!-- Login UI -->
+    <div id="login-screen">
+        <h1>🃏 CardClash</h1>
+        <p>Real-time Multiplayer Engine</p>
+        <input type="text" id="username" placeholder="Enter Your Name">
+        <input type="text" id="room" placeholder="Room ID (e.g. 101)">
+        <button type="button" onclick="joinGame()">Join Game</button>
+        <button type="button" class="leaderboard-btn" onclick="showLeaderboard()">🏆 View Leaderboard</button>
+    </div>
+
+    <!-- Game UI -->
+    <div id="game-screen">
+        <div class="top-info" id="opponents">
+            <!-- Opponents rendered here -->
+        </div>
+
+        <div class="card-area">
+            <div class="card" id="discard-pile">
+                <span class="pile-label">Discard Pile</span>
+                <span id="top-card-val">?</span>
+            </div>
+            <div class="card" id="draw-btn" onclick="drawCard()">
+                <span class="pile-label">Draw Pile</span>
+                +
+            </div>
+        </div>
+
+        <div>
+            <p id="turn-indicator">Waiting for players...</p>
+            <div class="my-hand" id="my-hand">
+                <!-- My Cards rendered here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Winner Modal -->
+    <div id="winner-modal" class="modal">
+        <h1>🏆 VICTORY!</h1>
+        <h2 id="winner-name"></h2>
+        
+        <div style="width: 200px;">
+            <button onclick="location.reload()">Play Again</button>
+            <button class="home-btn" onclick="location.reload()">🏠 Return to Home</button>
+        </div>
+    </div>
+
+    <!-- Leaderboard Modal -->
+    <div id="leaderboard-modal" class="modal">
+        <h2 style="color: #FFD700;">🏆 Top Winners</h2>
+        <div id="leaderboard-list">
+            <p>Loading...</p>
+        </div>
+        <button onclick="closeLeaderboard()" style="margin-top: 15px; width: 300px;">Close</button>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.min.js"></script>
+    <script>
+        let socket;
+        
+        try {
+            if (typeof io !== 'undefined') {
+                socket = io('http://localhost:3000'); 
+            } else {
+                throw new Error("Socket.io library not loaded");
+            }
+        } catch (e) {
+            console.error("Socket.io failed to initialize");
+            document.getElementById('error-banner').style.display = 'block';
+            document.getElementById('error-banner').innerText = "Error: Cannot connect to game server.";
+        }
+
+        let myHand = [];
+
+        // 1. Join Logic
+        function joinGame() {
+            if (!socket || !socket.connected) {
+                if(socket) socket.connect();
+                else return alert("Server not connected. Run 'node server.js'");
+            }
+            
+            const name = document.getElementById('username').value;
+            const room = document.getElementById('room').value;
+            if(!name || !room) return alert("Please enter name and room!");
+
+            document.getElementById('login-screen').style.display = 'none';
+            document.getElementById('game-screen').style.display = 'flex';
+
+            socket.emit('joinRoom', { roomId: room, playerName: name });
+        }
+
+        // Leaderboard Logic
+        async function showLeaderboard() {
+            const modal = document.getElementById('leaderboard-modal');
+            const list = document.getElementById('leaderboard-list');
+            modal.style.display = 'flex';
+            
+            try {
+                const res = await fetch('http://localhost:3000/api/leaderboard');
+                const data = await res.json();
+                
+                list.innerHTML = '';
+                if(data.length === 0) {
+                    list.innerHTML = '<p style="text-align:center">No games played yet!</p>';
+                }
+                
+                data.forEach((player, index) => {
+                    const item = document.createElement('div');
+                    item.className = 'leaderboard-item';
+                    item.innerHTML = `
+                        <span>#${index + 1} <b>${player._id}</b></span>
+                        <span>${player.wins} Wins</span>
+                    `;
+                    list.appendChild(item);
+                });
+            } catch(e) {
+                list.innerHTML = '<p style="color:red">Failed to load data. Is DB connected?</p>';
+            }
+        }
+
+        function closeLeaderboard() {
+            document.getElementById('leaderboard-modal').style.display = 'none';
+        }
+
+        // 2. Game State Listener
+        if (socket) {
+            socket.on('gameState', (state) => {
+                if(!state) return;
+                renderGame(state);
+            });
+
+            socket.on('yourHand', (hand) => {
+                const myHandDiv = document.getElementById('my-hand');
+                myHandDiv.innerHTML = '';
+                hand.forEach((card, index) => {
+                    const cardEl = document.createElement('div');
+                    cardEl.className = 'card';
+                    cardEl.setAttribute('data-color', card.color);
+                    cardEl.innerText = card.value;
+                    cardEl.onclick = () => playCard(index);
+                    myHandDiv.appendChild(cardEl);
+                });
+            });
+
+            socket.on('gameOver', ({ winner }) => {
+                document.getElementById('winner-modal').style.display = 'flex';
+                document.getElementById('winner-name').innerText = winner + " Wins!";
+            });
+            
+            socket.on('connect_error', (err) => {
+                const turnText = document.getElementById('turn-indicator');
+                if(turnText) {
+                    turnText.innerText = "⚠️ Connection Lost. Is server running?";
+                    turnText.style.color = "red";
+                }
+            });
+        }
+
+        // 4. Render Logic
+        function renderGame(state) {
+            const opponentsDiv = document.getElementById('opponents');
+            const discardDiv = document.getElementById('discard-pile');
+            const turnText = document.getElementById('turn-indicator');
+
+            opponentsDiv.innerHTML = '';
+
+            const isMyTurn = state.currentTurn === socket.id;
+            turnText.innerText = isMyTurn ? "🟢 IT'S YOUR TURN!" : "🔴 Waiting for opponent...";
+            turnText.style.color = isMyTurn ? "#4caf50" : "#fff";
+
+            const topCard = state.discardPile[0];
+            if(topCard) {
+                discardDiv.setAttribute('data-color', topCard.color);
+                document.getElementById('top-card-val').innerText = topCard.value;
+            }
+
+            state.players.forEach(p => {
+                if (p.id !== socket.id) {
+                    const badge = document.createElement('div');
+                    badge.className = `player-badge ${p.id === state.currentTurn ? 'active-turn' : ''}`;
+                    badge.innerHTML = `👤 ${p.name} <br> 🎴 ${p.cardCount} cards`;
+                    opponentsDiv.appendChild(badge);
+                }
+            });
+        }
+
+        function playCard(index) {
+            const room = document.getElementById('room').value;
+            socket.emit('playCard', { roomId: room, cardIndex: index });
+        }
+
+        function drawCard() {
+            const room = document.getElementById('room').value;
+            socket.emit('drawCard', { roomId: room });
+        }
+    </script>
+</body>
+</html>
